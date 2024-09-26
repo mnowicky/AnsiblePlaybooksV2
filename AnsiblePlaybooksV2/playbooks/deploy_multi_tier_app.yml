@@ -1,0 +1,46 @@
+---
+- name: Deploy Multi-Tier Application
+  hosts: all
+  become: yes
+  vars:
+    app_name: myapp
+    tiers:
+      - name: web
+        port: 8080
+        service: apache2
+        db: false
+      - name: api
+        port: 5000
+        service: flask
+        db: true
+
+  tasks:
+    - name: Install necessary packages
+      apt:
+        name:
+          - python3-pip
+          - python3-venv
+          - apache2
+        state: present
+      when: item.name == 'web' or item.db
+      loop: "{{ tiers }}"
+
+    - name: Setup virtual environment for API
+      command: python3 -m venv /opt/{{ app_name }}/venv
+      when: item.name == 'api'
+      loop: "{{ tiers }}"
+
+    - name: Install application dependencies
+      pip:
+        requirements: /opt/{{ app_name }}/requirements.txt
+        virtualenv: /opt/{{ app_name }}/venv
+      when: item.name == 'api'
+      loop: "{{ tiers }}"
+
+    - name: Start application services
+      service:
+        name: "{{ item.service }}"
+        state: started
+        enabled: yes
+      loop: "{{ tiers }}"
+

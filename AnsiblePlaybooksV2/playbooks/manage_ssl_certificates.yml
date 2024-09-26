@@ -1,0 +1,27 @@
+---
+- name: Manage SSL Certificates
+  hosts: web_servers
+  become: yes
+  vars:
+    domains:
+      - example.com
+      - www.example.com
+
+  tasks:
+    - name: Install Certbot
+      apt:
+        name: certbot
+        state: present
+
+    - name: Obtain SSL certificate
+      command: certbot certonly --webroot -w /var/www/html -d {{ item }}
+      register: certbot_result
+      when: certbot_result is failed
+      loop: "{{ domains }}"
+
+    - name: Reload Nginx to apply new certificates
+      service:
+        name: nginx
+        state: reloaded
+      when: certbot_result is changed
+

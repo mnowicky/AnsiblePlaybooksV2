@@ -1,0 +1,34 @@
+---
+- name: Setup CI/CD Pipeline
+  hosts: ci_cd_servers
+  become: yes
+
+  tasks:
+    - name: Install Jenkins and dependencies
+      apt:
+        name:
+          - jenkins
+          - git
+          - maven
+        state: present
+
+    - name: Start Jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Install Jenkins plugins
+      jenkins_plugin:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - git
+        - workflow-aggregator
+        - blueocean
+
+    - name: Configure Jenkins jobs
+      jenkins_job:
+        name: "MyApp Pipeline"
+        config: "{{ lookup('file', 'myapp_pipeline.xml') }}"
+

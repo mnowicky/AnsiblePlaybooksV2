@@ -1,0 +1,36 @@
+---
+- name: Update Application with Rollback
+  hosts: app_servers
+  become: yes
+  vars:
+    app_version: "2.0"
+    backup_dir: /opt/myapp/backup
+
+  tasks:
+    - name: Backup current application
+      command: tar -czf {{ backup_dir }}/myapp_backup_{{ ansible_date_time.iso8601 }}.tar.gz /opt/myapp
+      register: backup_result
+      ignore_errors: yes
+
+    - name: Download new application version
+      get_url:
+        url: http://example.com/myapp_v{{ app_version }}.tar.gz
+        dest: /tmp/myapp.tar.gz
+
+    - name: Extract new version
+      unarchive:
+        src: /tmp/myapp.tar.gz
+        dest: /opt/myapp/
+        remote_src: yes
+
+    - name: Restart application service
+      service:
+        name: myapp
+        state: restarted
+      register: restart_result
+      ignore_errors: yes
+
+    - name: Rollback if restart failed
+      command: tar -xzf {{ backup_dir }}/myapp_backup_{{ ansible_date_time.iso8601 }}.tar.gz -C /
+      when: restart_result is failed
+

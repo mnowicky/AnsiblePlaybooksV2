@@ -1,0 +1,19 @@
+---
+- name: Setup Multi-OS Configuration
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install packages based on OS
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ ansible_distribution | lower == 'ubuntu' | ternary('python3-pip', 'python-pip') }}"
+        - "{{ ansible_distribution | lower == 'centos' | ternary('epel-release', 'python-pip') }}"
+
+    - name: Ensure web service is running
+      service:
+        name: "{{ ansible_distribution | lower == 'ubuntu' | ternary('apache2', 'httpd') }}"
+        state: started
+

@@ -1,0 +1,30 @@
+---
+- name: Configure Multiple Environments
+  hosts: all
+  become: yes
+  vars:
+    environments:
+      - name: dev
+        packages:
+          - git
+          - vim
+      - name: staging
+        packages:
+          - git
+          - vim
+          - htop
+      - name: production
+        packages:
+          - git
+          - vim
+          - htop
+          - curl
+
+  tasks:
+    - name: Install packages for each environment
+      apt:
+        name: "{{ item.packages }}"
+        state: present
+      loop: "{{ environments }}"
+      when: inventory_hostname in groups[item.name]
+

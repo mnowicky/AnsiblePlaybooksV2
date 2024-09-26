@@ -1,0 +1,36 @@
+---
+- name: Manage Users and Groups
+  hosts: all
+  become: yes
+  vars:
+    users:
+      - name: alice
+        groups: ["developers", "admins"]
+        ssh_key: "ssh-rsa AAAA..."
+      - name: bob
+        groups: ["developers"]
+        ssh_key: "ssh-rsa BBBB..."
+
+  tasks:
+    - name: Ensure groups are present
+      group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ users | map(attribute='groups') | flatten | unique }}"
+
+    - name: Create user accounts
+      user:
+        name: "{{ item.name }}"
+        state: present
+        groups: "{{ item.groups | join(',') }}"
+        shell: /bin/bash
+      loop: "{{ users }}"
+
+    - name: Add SSH key for users
+      authorized_key:
+        user: "{{ item.name }}"
+        state: present
+        key: "{{ item.ssh_key }}"
+      loop: "{{ users }}"
+
